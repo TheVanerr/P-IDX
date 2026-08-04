@@ -107,10 +107,19 @@
   </div>
 
   <div id="safetyMatrixModal" class="modal-overlay hidden" aria-hidden="true">
-    <div class="modal modal-wide" role="dialog" aria-labelledby="safetyMatrixModalTitle">
+    <div class="modal modal-component-picker" role="dialog" aria-labelledby="safetyMatrixModalTitle">
       <h2 id="safetyMatrixModalTitle" class="modal-title">Safety Matrix</h2>
       <p id="safetyMatrixModalDesc" class="modal-desc"></p>
-      <div id="safetyMatrixList" class="modal-lang-list"></div>
+      <div class="component-picker-toolbar">
+        <input type="search" id="safetyMatrixSearch" class="modal-input component-picker-search" autocomplete="off">
+        <select id="safetyMatrixCategoryFilter" class="component-picker-filter"></select>
+        <span id="safetyMatrixCount" class="component-picker-count"></span>
+      </div>
+      <div class="component-picker-actions">
+        <button type="button" class="btn btn-sm" id="safetyMatrixSelectVisible">Görünenleri seç</button>
+        <button type="button" class="btn btn-sm" id="safetyMatrixClearAll">Temizle</button>
+      </div>
+      <div id="safetyMatrixList" class="component-picker-list"></div>
       <div class="modal-actions">
         <button type="button" class="btn" id="safetyMatrixCancel">İptal</button>
         <button type="button" class="btn btn-primary" id="safetyMatrixConfirm">Uygula</button>

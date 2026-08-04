@@ -8,8 +8,13 @@ let currentLang = 'tr';
 let viewMode = 'pdf';
 let exportModalType = 'pdf';
 let selectedInterlocks = [];
+const safetyMatrixSelectionByModel = new Map();
+let safetyMatrixCatalogLoaded = false;
+let safetyMatrixFilterQuery = '';
+let safetyMatrixFilterCategory = '';
 let selectedProcessItems = [];
 let selectedPidComponents = [];
+const pidComponentSelectionByModel = new Map();
 let pidComponentCatalogLoaded = false;
 let pidComponentFilterQuery = '';
 let pidComponentFilterCategory = '';
@@ -188,37 +193,95 @@ function bindControls() {
 }
 
 function safetyMatrixStorageKey() {
-  return `pid-safety-matrix:${currentModel}`;
+  return currentModel || '__default__';
+}
+
+async function loadSafetyMatrixCatalog() {
+  if (!window.electronAPI?.readSafetyCatalog) {
+    showToast('guvenlik.csv yalnızca Electron uygulamasında okunur', 'error');
+    return false;
+  }
+
+  const result = await window.electronAPI.readSafetyCatalog();
+  if (!result?.ok) {
+    showToast(result?.error || getSafetyMatrixMeta(currentLang).catalogEmpty, 'error');
+    return false;
+  }
+
+  setSafetyMatrixCatalog(result.entries);
+  safetyMatrixCatalogLoaded = true;
+  return true;
 }
 
 function loadSafetyMatrixSelection() {
-  try {
-    const raw = localStorage.getItem(safetyMatrixStorageKey());
-    selectedInterlocks = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(selectedInterlocks)) selectedInterlocks = [];
-    selectedInterlocks = selectedInterlocks.filter(id => SAFETY_MATRIX_ORDER.includes(id));
-  } catch {
-    selectedInterlocks = [];
-  }
+  selectedInterlocks = safetyMatrixSelectionByModel.get(safetyMatrixStorageKey()) || [];
+  if (!Array.isArray(selectedInterlocks)) selectedInterlocks = [];
+  selectedInterlocks = selectedInterlocks.filter(id => SAFETY_MATRIX_ORDER.includes(id));
 }
 
 function saveSafetyMatrixSelection() {
-  localStorage.setItem(safetyMatrixStorageKey(), JSON.stringify(selectedInterlocks));
+  safetyMatrixSelectionByModel.set(safetyMatrixStorageKey(), [...selectedInterlocks]);
 }
 
-function initSafetyMatrixModal() {
+function buildSafetyMatrixCategoryFilterOptions() {
+  const select = document.getElementById('safetyMatrixCategoryFilter');
+  if (!select) return;
+
+  const meta = getSafetyMatrixMeta(currentLang);
+  const current = safetyMatrixFilterCategory;
+  select.innerHTML = '';
+
+  const allOption = document.createElement('option');
+  allOption.value = '';
+  allOption.textContent = meta.categoryAll;
+  select.appendChild(allOption);
+
+  for (const category of getSafetyMatrixCategories()) {
+    const option = document.createElement('option');
+    option.value = category;
+    option.textContent = category;
+    select.appendChild(option);
+  }
+
+  select.value = [...select.options].some(opt => opt.value === current) ? current : '';
+  safetyMatrixFilterCategory = select.value;
+}
+
+function renderSafetyMatrixListItems() {
   const list = document.getElementById('safetyMatrixList');
   if (!list) return;
 
   list.innerHTML = '';
+  if (!SAFETY_MATRIX_ORDER.length) {
+    const empty = document.createElement('div');
+    empty.className = 'component-picker-empty';
+    empty.textContent = getSafetyMatrixMeta(currentLang).catalogEmpty;
+    list.appendChild(empty);
+    updateSafetyMatrixSelectionCount();
+    return;
+  }
+
+  const query = safetyMatrixFilterQuery.trim().toLowerCase();
+
   for (const id of SAFETY_MATRIX_ORDER) {
+    const labelText = getSafetyMatrixModalLabel(id, currentLang);
+    const category = getSafetyMatrixCategory(id);
+    const searchText = getSafetyMatrixSearchText(id, currentLang).toLowerCase();
+    const matchesQuery = !query || searchText.includes(query);
+    const matchesCategory = !safetyMatrixFilterCategory || category === safetyMatrixFilterCategory;
+
     const label = document.createElement('label');
-    label.className = 'modal-lang-item';
+    label.className = 'component-picker-item';
+    label.dataset.matrixId = id;
+    label.dataset.category = category;
+    if (!matchesQuery || !matchesCategory) label.classList.add('is-hidden');
 
     const input = document.createElement('input');
     input.type = 'checkbox';
     input.name = 'safetyMatrixItem';
     input.value = id;
+    input.checked = selectedInterlocks.includes(id);
+    input.addEventListener('change', updateSafetyMatrixSelectionCount);
 
     const idBadge = document.createElement('span');
     idBadge.className = 'matrix-id-badge';
@@ -227,13 +290,75 @@ function initSafetyMatrixModal() {
     const text = document.createElement('span');
     text.className = 'matrix-item-label';
     text.dataset.matrixId = id;
-    text.textContent = getSafetyMatrixModalLabel(id, currentLang);
+    text.textContent = labelText;
 
     label.appendChild(input);
     label.appendChild(idBadge);
     label.appendChild(text);
+
+    if (category) {
+      const cat = document.createElement('span');
+      cat.className = 'component-item-category';
+      cat.textContent = category;
+      label.appendChild(cat);
+    }
+
     list.appendChild(label);
   }
+
+  updateSafetyMatrixSelectionCount();
+}
+
+function updateSafetyMatrixSelectionCount() {
+  const countEl = document.getElementById('safetyMatrixCount');
+  if (!countEl) return;
+
+  const meta = getSafetyMatrixMeta(currentLang);
+  const checked = document.querySelectorAll('input[name="safetyMatrixItem"]:checked').length;
+  const total = SAFETY_MATRIX_ORDER.length;
+  countEl.textContent = meta.selectedCount(checked, total);
+}
+
+function applySafetyMatrixListFilters() {
+  const query = safetyMatrixFilterQuery.trim().toLowerCase();
+  document.querySelectorAll('#safetyMatrixList .component-picker-item').forEach(item => {
+    const id = item.dataset.matrixId || '';
+    const category = item.dataset.category || '';
+    const searchText = getSafetyMatrixSearchText(id, currentLang).toLowerCase();
+    const matchesQuery = !query || searchText.includes(query);
+    const matchesCategory = !safetyMatrixFilterCategory || category === safetyMatrixFilterCategory;
+    item.classList.toggle('is-hidden', !(matchesQuery && matchesCategory));
+  });
+  updateSafetyMatrixSelectionCount();
+}
+
+function initSafetyMatrixModal() {
+  buildSafetyMatrixCategoryFilterOptions();
+  renderSafetyMatrixListItems();
+
+  const search = document.getElementById('safetyMatrixSearch');
+  const categoryFilter = document.getElementById('safetyMatrixCategoryFilter');
+
+  search?.addEventListener('input', () => {
+    safetyMatrixFilterQuery = search.value;
+    applySafetyMatrixListFilters();
+  });
+
+  categoryFilter?.addEventListener('change', () => {
+    safetyMatrixFilterCategory = categoryFilter.value;
+    applySafetyMatrixListFilters();
+  });
+
+  document.getElementById('safetyMatrixSelectVisible')?.addEventListener('click', () => {
+    document.querySelectorAll('#safetyMatrixList .component-picker-item:not(.is-hidden) input[name="safetyMatrixItem"]')
+      .forEach(input => { input.checked = true; });
+    updateSafetyMatrixSelectionCount();
+  });
+
+  document.getElementById('safetyMatrixClearAll')?.addEventListener('click', () => {
+    document.querySelectorAll('input[name="safetyMatrixItem"]').forEach(input => { input.checked = false; });
+    updateSafetyMatrixSelectionCount();
+  });
 
   document.getElementById('safetyMatrixCancel')?.addEventListener('click', closeSafetyMatrixModal);
   document.getElementById('safetyMatrixConfirm')?.addEventListener('click', confirmSafetyMatrix);
@@ -248,29 +373,51 @@ function updateSafetyMatrixModalText() {
   const desc = document.getElementById('safetyMatrixModalDesc');
   const confirm = document.getElementById('safetyMatrixConfirm');
   const cancel = document.getElementById('safetyMatrixCancel');
+  const search = document.getElementById('safetyMatrixSearch');
+  const selectVisible = document.getElementById('safetyMatrixSelectVisible');
+  const clearAll = document.getElementById('safetyMatrixClearAll');
 
   if (title) title.textContent = meta.modalTitle;
   if (desc) desc.textContent = meta.modalDesc;
   if (confirm) confirm.textContent = meta.modalConfirm;
   if (cancel) cancel.textContent = meta.modalCancel;
+  if (search) search.placeholder = meta.searchPlaceholder;
+  if (selectVisible) selectVisible.textContent = meta.selectVisible;
+  if (clearAll) clearAll.textContent = meta.clearAll;
 
+  buildSafetyMatrixCategoryFilterOptions();
   document.querySelectorAll('.matrix-item-label').forEach(el => {
     const id = el.dataset.matrixId;
     if (id) el.textContent = getSafetyMatrixModalLabel(id, currentLang);
   });
+  updateSafetyMatrixSelectionCount();
 }
 
-function openSafetyMatrixModal() {
+async function openSafetyMatrixModal() {
   const modal = document.getElementById('safetyMatrixModal');
   if (!modal) return;
+
+  if (window.electronAPI?.readSafetyCatalog) {
+    const result = await window.electronAPI.readSafetyCatalog();
+    if (result?.ok) {
+      const prevOrder = SAFETY_MATRIX_ORDER.join('|');
+      setSafetyMatrixCatalog(result.entries);
+      if (SAFETY_MATRIX_ORDER.join('|') !== prevOrder) {
+        loadSafetyMatrixSelection();
+        renderSafetyMatrixListItems();
+      }
+    }
+  }
 
   updateSafetyMatrixModalText();
   modal.querySelectorAll('input[name="safetyMatrixItem"]').forEach(input => {
     input.checked = selectedInterlocks.includes(input.value);
   });
+  updateSafetyMatrixSelectionCount();
 
   modal.classList.remove('hidden');
   modal.setAttribute('aria-hidden', 'false');
+  document.getElementById('safetyMatrixSearch')?.focus();
 }
 
 function closeSafetyMatrixModal() {
@@ -394,7 +541,7 @@ function confirmProcessOverview() {
 }
 
 function pidComponentStorageKey() {
-  return `pid-component:${currentModel}`;
+  return currentModel || '__default__';
 }
 
 async function loadPidComponentCatalog() {
@@ -415,18 +562,13 @@ async function loadPidComponentCatalog() {
 }
 
 function loadPidComponentSelection() {
-  try {
-    const raw = localStorage.getItem(pidComponentStorageKey());
-    selectedPidComponents = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(selectedPidComponents)) selectedPidComponents = [];
-    selectedPidComponents = selectedPidComponents.filter(id => PID_COMPONENT_ORDER.includes(id));
-  } catch {
-    selectedPidComponents = [];
-  }
+  selectedPidComponents = pidComponentSelectionByModel.get(pidComponentStorageKey()) || [];
+  if (!Array.isArray(selectedPidComponents)) selectedPidComponents = [];
+  selectedPidComponents = selectedPidComponents.filter(id => PID_COMPONENT_ORDER.includes(id));
 }
 
 function savePidComponentSelection() {
-  localStorage.setItem(pidComponentStorageKey(), JSON.stringify(selectedPidComponents));
+  pidComponentSelectionByModel.set(pidComponentStorageKey(), [...selectedPidComponents]);
 }
 
 function buildPidComponentCategoryFilterOptions() {
@@ -1328,7 +1470,7 @@ function showToast(msg, type) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await loadPidComponentCatalog();
+  await Promise.all([loadPidComponentCatalog(), loadSafetyMatrixCatalog()]);
   bindControls();
   void renderDocument();
 });

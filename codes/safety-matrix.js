@@ -1,6 +1,8 @@
-/* Safety Matrix — statik tanımlar, proje bazlı seçim renderer.js'te */
+/* Safety Matrix — katalog data/guvenlik.csv, seçim renderer.js'te */
 
-const SAFETY_MATRIX_ORDER = ['I-1', 'I-2', 'I-3'];
+let SAFETY_MATRIX_ORDER = [];
+const SAFETY_MATRIX_ROWS = {};
+const SAFETY_MATRIX_CATEGORIES = new Set();
 
 const SAFETY_MATRIX_META = {
   tr: {
@@ -13,10 +15,17 @@ const SAFETY_MATRIX_META = {
       logic: 'Güvenlik Senaryosu ve Otomasyon Mantığı'
     },
     modalTitle: 'Safety Matrix',
-    modalDesc: 'Bu projede yer alan interlock öğelerini seçin.',
+    modalDesc: 'Dokümana dahil edilecek interlock satırlarını seçin. Katalog: data/guvenlik.csv, safety.csv, safety-de.csv',
     modalConfirm: 'Uygula',
     modalCancel: 'İptal',
-    modalSaved: 'Safety Matrix güncellendi'
+    modalSaved: 'Safety Matrix güncellendi',
+    searchPlaceholder: 'Kod, sensör veya mantık ara…',
+    categoryAll: 'Tüm kategoriler',
+    selectVisible: 'Görünenleri seç',
+    clearAll: 'Temizle',
+    selectedCount: (selected, total) => `${selected} / ${total} seçili`,
+    catalogEmpty: 'Güvenlik kataloğu yüklenemedi',
+    continuedSuffix: ' (devam)'
   },
   en: {
     sectionTitle: '2. Safety and Interlock Logic (Automation Matrix)',
@@ -28,10 +37,17 @@ const SAFETY_MATRIX_META = {
       logic: 'Safety Scenario and Automation Logic'
     },
     modalTitle: 'Safety Matrix',
-    modalDesc: 'Select the interlock items included in this project.',
+    modalDesc: 'Select interlock rows to include in the document. Catalog: data/guvenlik.csv, safety.csv, safety-de.csv',
     modalConfirm: 'Apply',
     modalCancel: 'Cancel',
-    modalSaved: 'Safety Matrix updated'
+    modalSaved: 'Safety Matrix updated',
+    searchPlaceholder: 'Search code, sensor or logic…',
+    categoryAll: 'All categories',
+    selectVisible: 'Select visible',
+    clearAll: 'Clear',
+    selectedCount: (selected, total) => `${selected} / ${total} selected`,
+    catalogEmpty: 'Could not load safety catalog',
+    continuedSuffix: ' (continued)'
   },
   de: {
     sectionTitle: '2. Sicherheits- und Verriegelungslogik (Automatisierungsmatrix)',
@@ -43,73 +59,17 @@ const SAFETY_MATRIX_META = {
       logic: 'Sicherheitsszenario und Automatisierungslogik'
     },
     modalTitle: 'Safety Matrix',
-    modalDesc: 'Wählen Sie die Interlock-Elemente für dieses Projekt.',
+    modalDesc: 'Interlock-Zeilen für das Dokument auswählen. Katalog: data/guvenlik.csv, safety.csv, safety-de.csv',
     modalConfirm: 'Anwenden',
     modalCancel: 'Abbrechen',
-    modalSaved: 'Safety Matrix aktualisiert'
-  }
-};
-
-const SAFETY_MATRIX_ROWS = {
-  'I-1': {
-    tr: {
-      interlockId: 'I-1',
-      triggerSensor: 'Hazne Kapı Şalteri (SW18)',
-      lockedEquipment: 'Makine Çevrimi (GE01, PE02A/B)',
-      logic: 'Personel Güvenliği: SW18 ile hazne kapağının güvenli şekilde kapalı olduğu doğrulanmadıkça makine çalışması engellenir. PLC, kapı açıkken ana sepet motorunun ve proses pompalarının çalışmasını önleyerek operatörü tehlikeli hareket ve sıvı temasından korur.'
-    },
-    en: {
-      interlockId: 'I-1',
-      triggerSensor: 'Chamber Door Switch (SW18)',
-      lockedEquipment: 'Machine Cycle (GE01, PE02A/B)',
-      logic: 'Personnel Safety: Machine operation is inhibited unless the chamber door is confirmed securely closed by SW18. The PLC prevents the main basket motor and process pumps from starting if the door is open, protecting the operator from hazardous motion and fluid exposure.'
-    },
-    de: {
-      interlockId: 'I-1',
-      triggerSensor: 'Kammertür-Schalter (SW18)',
-      lockedEquipment: 'Maschinenzyklus (GE01, PE02A/B)',
-      logic: 'Personalsicherheit: Der Maschinenbetrieb ist gesperrt, bis die Kammertür durch SW18 als sicher geschlossen bestätigt wurde. Die SPS verhindert den Start des Hauptkorbmotors und der Prozesspumpen bei geöffneter Tür und schützt den Bediener vor gefährlichen Bewegungen und Flüssigkeitskontakt.'
-    }
-  },
-  'I-2': {
-    tr: {
-      interlockId: 'I-2',
-      triggerSensor: 'Kapı Interlock Mantığı (IL)',
-      lockedEquipment: 'Hazne Kapı Mekanizması',
-      logic: 'Operasyonel Güvenlik (Opsiyonel): Donanımda mevcutsa, fiziksel interlock mekanizması aktif yıkama döngüsü başladığında hazne kapağını kilitler. Operatörün makine çalışırken kapağı yanlışlıkla açması engellenir; iç tehlikelere maruz kalma ve proses kesintileri azaltılır.'
-    },
-    en: {
-      interlockId: 'I-2',
-      triggerSensor: 'Door Interlock Logic (IL)',
-      lockedEquipment: 'Chamber Door Mechanism',
-      logic: 'Operational Safety (Optional Feature): When equipped, the physical interlock mechanism locks the chamber door as soon as the active wash cycle begins. This prevents the operator from accidentally opening the door while the machine is running, mitigating exposure to internal hazards and preventing process interruptions.'
-    },
-    de: {
-      interlockId: 'I-2',
-      triggerSensor: 'Tür-Verriegelungslogik (IL)',
-      lockedEquipment: 'Kammertür-Mechanismus',
-      logic: 'Betriebssicherheit (Optional): Bei Ausstattung verriegelt der physische Interlock-Mechanismus die Kammertür, sobald der aktive Waschzyklus beginnt. Dies verhindert, dass der Bediener die Tür während des Betriebs öffnet, und reduziert Gefährdungen sowie Prozessunterbrechungen.'
-    }
-  },
-  'I-3': {
-    tr: {
-      interlockId: 'I-3',
-      triggerSensor: 'Düşük Seviye Şalteri (LSL)',
-      lockedEquipment: 'Elektrikli Isıtıcılar (R01, R02)',
-      logic: 'Ekipman Koruması: Su seviyesi LSL eşiğinin altına düşerse ısıtıcılar elektriksel olarak interlock edilir. Bu, kuru çalışmayı önleyerek ısıtma elemanlarını ve tankı termal hasardan korur.'
-    },
-    en: {
-      interlockId: 'I-3',
-      triggerSensor: 'Level Switch Low (LSL)',
-      lockedEquipment: 'Electric Heaters (R01, R02)',
-      logic: 'Equipment Protection: If the water level drops below the LSL threshold, the heaters are electrically interlocked. This prevents "dry firing," protecting the heating elements and the tank from thermal damage.'
-    },
-    de: {
-      interlockId: 'I-3',
-      triggerSensor: 'Mindeststandwächter (LSL)',
-      lockedEquipment: 'Elektroheizungen (R01, R02)',
-      logic: 'Anlagenschutz: Fällt der Wasserstand unter den LSL-Schwellenwert, werden die Heizungen elektrisch verriegelt. Dies verhindert Trockenlauf und schützt Heizelemente und Tank vor thermischen Schäden.'
-    }
+    modalSaved: 'Safety Matrix aktualisiert',
+    searchPlaceholder: 'Code, Sensor oder Logik suchen…',
+    categoryAll: 'Alle Kategorien',
+    selectVisible: 'Sichtbare auswählen',
+    clearAll: 'Leeren',
+    selectedCount: (selected, total) => `${selected} / ${total} ausgewählt`,
+    catalogEmpty: 'Sicherheitskatalog konnte nicht geladen werden',
+    continuedSuffix: ' (Fortsetzung)'
   }
 };
 
@@ -120,15 +80,51 @@ const SAFETY_MATRIX_COLS = [
   { key: 'logic', className: 'col-logic', width: '58.75%' }
 ];
 
+function setSafetyMatrixCatalog(entries) {
+  SAFETY_MATRIX_ORDER = [];
+  SAFETY_MATRIX_CATEGORIES.clear();
+  for (const key of Object.keys(SAFETY_MATRIX_ROWS)) {
+    delete SAFETY_MATRIX_ROWS[key];
+  }
+
+  for (const entry of entries || []) {
+    if (!entry?.id) continue;
+    SAFETY_MATRIX_ORDER.push(entry.id);
+    SAFETY_MATRIX_ROWS[entry.id] = {
+      category: entry.category || '',
+      tr: entry.tr,
+      en: entry.en,
+      de: entry.de
+    };
+    if (entry.category) SAFETY_MATRIX_CATEGORIES.add(entry.category);
+  }
+}
+
+function getSafetyMatrixCategories() {
+  return [...SAFETY_MATRIX_CATEGORIES].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+}
+
 function getSafetyMatrixMeta(lang) {
   return SAFETY_MATRIX_META[lang] || SAFETY_MATRIX_META.en;
+}
+
+function getSafetyMatrixCategory(id) {
+  return SAFETY_MATRIX_ROWS[id]?.category || '';
 }
 
 function getSafetyMatrixModalLabel(id, lang) {
   const row = SAFETY_MATRIX_ROWS[id];
   if (!row) return id;
-  const loc = row[lang] || row.en;
-  return loc.triggerSensor;
+  const loc = row[lang] || row.en || row.tr;
+  return loc?.triggerSensor || id;
+}
+
+function getSafetyMatrixSearchText(id, lang) {
+  const row = SAFETY_MATRIX_ROWS[id];
+  if (!row) return id;
+  const loc = row[lang] || row.en || row.tr;
+  const category = getSafetyMatrixCategory(id);
+  return `${id} ${loc?.triggerSensor || ''} ${loc?.lockedEquipment || ''} ${loc?.logic || ''} ${category}`.trim();
 }
 
 function buildSafetyMatrixTable(selectedIds, lang) {
@@ -159,7 +155,7 @@ function buildSafetyMatrixTable(selectedIds, lang) {
   const tbody = document.createElement('tbody');
   for (const id of SAFETY_MATRIX_ORDER) {
     if (!selectedIds.includes(id)) continue;
-    const rowData = SAFETY_MATRIX_ROWS[id]?.[lang] || SAFETY_MATRIX_ROWS[id]?.en;
+    const rowData = SAFETY_MATRIX_ROWS[id]?.[lang] || SAFETY_MATRIX_ROWS[id]?.en || SAFETY_MATRIX_ROWS[id]?.tr;
     if (!rowData) continue;
 
     const tr = document.createElement('tr');
@@ -181,6 +177,7 @@ function buildSafetyMatrixSection(selectedIds, lang) {
   const meta = getSafetyMatrixMeta(lang);
   const section = document.createElement('div');
   section.className = 'doc-block-stack safety-matrix-section';
+  section.dataset.continuedSuffix = meta.continuedSuffix;
 
   const heading = document.createElement('h2');
   heading.className = 'doc-h2';

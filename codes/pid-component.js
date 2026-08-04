@@ -24,7 +24,8 @@ const PID_COMPONENT_META = {
     clearAll: 'Temizle',
     selectedCount: (selected, total) => `${selected} / ${total} seçili`,
     catalogEmpty: 'Katalog yüklenemedi',
-    catalogReloaded: 'Katalog güncellendi'
+    catalogReloaded: 'Katalog güncellendi',
+    continuedSuffix: ' (devam)'
   },
   en: {
     sectionTitle: '3. P&ID Component Definitions (Component Legend)',
@@ -45,7 +46,8 @@ const PID_COMPONENT_META = {
     clearAll: 'Clear',
     selectedCount: (selected, total) => `${selected} / ${total} selected`,
     catalogEmpty: 'Could not load catalog',
-    catalogReloaded: 'Catalog updated'
+    catalogReloaded: 'Catalog updated',
+    continuedSuffix: ' (continued)'
   },
   de: {
     sectionTitle: '3. P&ID-Komponentendefinitionen (Component Legend)',
@@ -66,7 +68,8 @@ const PID_COMPONENT_META = {
     clearAll: 'Leeren',
     selectedCount: (selected, total) => `${selected} / ${total} ausgewählt`,
     catalogEmpty: 'Katalog konnte nicht geladen werden',
-    catalogReloaded: 'Katalog aktualisiert'
+    catalogReloaded: 'Katalog aktualisiert',
+    continuedSuffix: ' (Fortsetzung)'
   }
 };
 
@@ -173,6 +176,7 @@ function buildPidComponentSection(selectedIds, lang) {
   const meta = getPidComponentMeta(lang);
   const section = document.createElement('div');
   section.className = 'doc-block-stack pid-component-section';
+  section.dataset.continuedSuffix = meta.continuedSuffix;
 
   const heading = document.createElement('h2');
   heading.className = 'doc-h2';

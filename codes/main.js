@@ -10,6 +10,12 @@ const KOD_CSV_FILES = {
   en: path.join(PROJECT_ROOT, 'data', 'kod-en.csv'),
   de: path.join(PROJECT_ROOT, 'data', 'kod-de.csv')
 };
+
+const SAFETY_CSV_FILES = {
+  tr: path.join(PROJECT_ROOT, 'data', 'guvenlik.csv'),
+  en: path.join(PROJECT_ROOT, 'data', 'safety.csv'),
+  de: path.join(PROJECT_ROOT, 'data', 'safety-de.csv')
+};
 const EXPORT_FILE_SUFFIX = 'P&ID DIAGRAM';
 
 try {
@@ -263,6 +269,86 @@ function loadKodCatalog() {
   }
 }
 
+function loadSafetyCatalog() {
+  try {
+    if (!fs.existsSync(SAFETY_CSV_FILES.tr)) {
+      return { ok: false, error: `guvenlik.csv bulunamadı: ${SAFETY_CSV_FILES.tr}` };
+    }
+
+    const trRows = parseSafetyLangCsv(readKodCsvText(SAFETY_CSV_FILES.tr));
+    const enRows = fs.existsSync(SAFETY_CSV_FILES.en)
+      ? parseSafetyLangCsv(readKodCsvText(SAFETY_CSV_FILES.en))
+      : [];
+    const deRows = fs.existsSync(SAFETY_CSV_FILES.de)
+      ? parseSafetyLangCsv(readKodCsvText(SAFETY_CSV_FILES.de))
+      : [];
+
+    if (!trRows.length) {
+      return { ok: false, error: 'guvenlik.csv dosyasında geçerli satır bulunamadı' };
+    }
+
+    const enMap = new Map(enRows.map(row => [row.kod, row]));
+    const deMap = new Map(deRows.map(row => [row.kod, row]));
+    const entries = [];
+    const seen = new Set();
+
+    for (const tr of trRows) {
+      if (seen.has(tr.kod)) continue;
+      const en = enMap.get(tr.kod);
+      const de = deMap.get(tr.kod);
+
+      entries.push({
+        id: tr.kod,
+        category: deriveCategoryFromKod(tr.kod),
+        tr: {
+          interlockId: tr.kod,
+          triggerSensor: tr.trigger,
+          lockedEquipment: tr.locked,
+          logic: tr.logic
+        },
+        en: {
+          interlockId: tr.kod,
+          triggerSensor: en?.trigger || tr.trigger,
+          lockedEquipment: en?.locked || tr.locked,
+          logic: en?.logic || tr.logic
+        },
+        de: {
+          interlockId: tr.kod,
+          triggerSensor: de?.trigger || en?.trigger || tr.trigger,
+          lockedEquipment: de?.locked || en?.locked || tr.locked,
+          logic: de?.logic || en?.logic || tr.logic
+        }
+      });
+      seen.add(tr.kod);
+    }
+
+    return { ok: true, entries, path: SAFETY_CSV_FILES.tr };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+function parseSafetyLangCsv(text) {
+  const { headers, rows } = parseCsvContent(text);
+  if (!headers.length) return [];
+
+  const isFourColumn = headers.length >= 4;
+  const result = [];
+
+  for (const row of rows) {
+    const kod = String(row[0] || '').trim();
+    if (!kod) continue;
+
+    const trigger = String(row[1] || '').trim() || kod;
+    const locked = isFourColumn ? String(row[2] || '').trim() : '';
+    const logic = isFourColumn ? String(row[3] || '').trim() : String(row[2] || '').trim();
+
+    result.push({ kod, trigger, locked, logic });
+  }
+
+  return result;
+}
+
 function registerIpcHandlers() {
   ipcMain.removeHandler('print-pdf');
   ipcMain.removeHandler('export-html');
@@ -270,6 +356,7 @@ function registerIpcHandlers() {
   ipcMain.removeHandler('drawings-read-svg');
   ipcMain.removeHandler('drawings-exists');
   ipcMain.removeHandler('kod-catalog-read');
+  ipcMain.removeHandler('safety-catalog-read');
 
   ipcMain.handle('print-pdf', async (_event, payload) => {
     const baseName = sanitizeFileName(payload?.fileName) || `pid-dokuman ${EXPORT_FILE_SUFFIX}`;
@@ -346,6 +433,14 @@ ${inlined}
       return { ok: true, exists: fs.existsSync(abs) };
     } catch {
       return { ok: true, exists: false };
+    }
+  });
+
+  ipcMain.handle('safety-catalog-read', async () => {
+    try {
+      return loadSafetyCatalog();
+    } catch (e) {
+      return { ok: false, error: e.message };
     }
   });
 

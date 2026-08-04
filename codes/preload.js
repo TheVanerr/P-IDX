@@ -6,5 +6,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   listDrawings: (relativePath) => ipcRenderer.invoke('drawings-list', relativePath),
   drawingsExists: (relativePath) => ipcRenderer.invoke('drawings-exists', relativePath),
   readDrawingSvg: (relativePath) => ipcRenderer.invoke('drawings-read-svg', relativePath),
-  readKodCatalog: () => ipcRenderer.invoke('kod-catalog-read')
+  readKodCatalog: () => ipcRenderer.invoke('kod-catalog-read'),
+  readSafetyCatalog: () => ipcRenderer.invoke('safety-catalog-read')
 });

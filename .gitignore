@@ -1,0 +1,5 @@
+codes/node_modules/
+.cursor/
+*.log
+.DS_Store
+Thumbs.db

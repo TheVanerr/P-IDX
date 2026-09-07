@@ -598,9 +598,10 @@
       let added = 0, updated = 0;
       parsed.forEach(function (_ref) {
         const nk = normalizeKod(_ref.kod);
-        const existing = kodlar.find(function (k) { return k.kod === nk; });
-        if (existing) { existing.aciklama = _ref.aciklama; updated++; }
-        else { kodlar.push({ kod: nk, aciklama: _ref.aciklama }); added++; }
+        const aciklama = _ref.aciklama.trim();
+        const existing = kodlar.find(function (k) { return k.kod === nk && k.aciklama === aciklama; });
+        if (existing) { updated++; }
+        else { kodlar.push({ kod: nk, aciklama: aciklama }); added++; }
       });
       saveStorage();
       renderKodTable();

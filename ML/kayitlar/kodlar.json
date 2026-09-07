@@ -1218,11 +1218,11 @@
     },
     {
       "kod": "PS05",
-      "aciklama": "Giriş Su Basınç  Sensörü"
+      "aciklama": "Su Bilgisi"
     },
     {
       "kod": "PS06",
-      "aciklama": "Giriş Hava Basıncı Basınç Sensörü"
+      "aciklama": "Hava Bilgisi"
     },
     {
       "kod": "INV01",

@@ -303,8 +303,8 @@ B09;xxx  Butonu
 B10;xxx  Butonu
 ENC01;Sepet / Tambur Encoderi
 ENC02;xxx Encoderi
-PS05;Giriş Su Basınç  Sensörü 
-PS06;Giriş Hava Basıncı Basınç Sensörü
+PS05;Su Bilgisi
+PS06;Hava Bilgisi
 INV01;Sepet Redüktörü İnvertörü
 INV02;Tambur Redüktör İnvertörü
 INV03;1. Konveyör Redüktör İnvertörü

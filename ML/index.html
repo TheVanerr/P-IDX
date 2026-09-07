@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Makine Kod Yönetimi</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <h1>Makine Kod Yönetimi</h1>
+      <p class="subtitle">P&amp;ID etiketleri ve makine kayıtları</p>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="btn btn-primary btn-sm" id="btnCsvHeader">CSV Yükle</button>
+      <button type="button" class="btn btn-ghost" id="btnKlasorBagla">kayitlar Bağla</button>
+      <button type="button" class="btn btn-ghost" id="btnKlasorYukle">Kayıtları Yükle</button>
+      <span id="klasorDurum" class="klasor-durum" title="Dosya kayıt durumu"></span>
+      <input type="file" id="csvHeaderInput" accept=".csv,text/csv,text/plain" hidden>
+      <input type="file" id="folderInput" webkitdirectory multiple hidden>
+    </div>
+  </header>
+
+  <div id="csvBanner" class="setup-banner hidden">
+    Kod listesi yüklü değil. <button type="button" class="btn btn-primary btn-sm" id="btnCsvBanner">KODListesi.csv seç</button>
+  </div>
+
+  <nav class="tabs">
+    <button type="button" class="tab active" data-tab="makineler">Makineler</button>
+    <button type="button" class="tab" data-tab="kodlar">Kod Listesi</button>
+  </nav>
+
+  <main>
+    <section id="panel-makineler" class="panel active">
+      <div class="layout-split">
+        <aside class="sidebar">
+          <div class="sidebar-header">
+            <h2>Kayıtlı Makineler</h2>
+            <button type="button" class="btn btn-primary btn-sm" id="btnYeniMakine">+ Yeni</button>
+          </div>
+          <input type="search" id="makineArama" class="search-input" placeholder="Seri no, firma veya model ara...">
+          <ul id="makineListesi" class="item-list"></ul>
+        </aside>
+
+        <div class="content">
+          <div id="makineFormWrap" class="card hidden">
+            <div class="card-header">
+              <h2 id="makineFormBaslik">Yeni Makine</h2>
+              <div class="card-actions">
+                <button type="button" class="btn btn-ghost btn-sm" id="btnMakineJson" hidden>JSON İndir</button>
+                <button type="button" class="btn btn-danger btn-sm" id="btnMakineSil" hidden>Sil</button>
+              </div>
+            </div>
+            <form id="makineForm">
+              <div class="form-grid">
+                <label>
+                  Seri No
+                  <input type="text" id="seriNo" required placeholder="Örn: SN-2024-001">
+                </label>
+                <label>
+                  Firma
+                  <input type="text" id="firma" required placeholder="Örn: ABC Sanayi">
+                </label>
+                <label>
+                  Makine Modeli
+                  <input type="text" id="model" required placeholder="Örn: YK-500">
+                </label>
+              </div>
+
+              <div class="kod-secim">
+                <div class="kod-secim-header">
+                  <h3>Component Kodları</h3>
+                  <span id="seciliKodSayisi" class="badge">0 seçili</span>
+                </div>
+                <div class="filter-bar">
+                  <div class="filter-row">
+                    <label for="kodSeriFilter">Kod / Seri</label>
+                    <input type="search" id="kodSeriFilter" class="search-input" placeholder="Örn: PE → sadece PE01, PE02...">
+                  </div>
+                  <div class="filter-row">
+                    <label for="kodAciklamaFilter">Açıklama</label>
+                    <input type="search" id="kodAciklamaFilter" class="search-input" placeholder="Örn: pompa, fan, vanası...">
+                  </div>
+                </div>
+                <div id="seriChipsMakine" class="seri-chips"></div>
+                <p id="kodFiltreSonuc" class="filter-result"></p>
+                <div class="kod-actions">
+                  <button type="button" class="btn btn-ghost btn-sm" id="btnFiltreTemizle">Filtreyi Temizle</button>
+                  <button type="button" class="btn btn-ghost btn-sm" id="btnTumunuSec">Görünenleri Seç</button>
+                  <button type="button" class="btn btn-ghost btn-sm" id="btnTemizle">Seçimi Temizle</button>
+                </div>
+                <div id="kodCheckboxList" class="kod-checkbox-list"></div>
+              </div>
+
+              <div class="form-actions">
+                <button type="button" class="btn btn-ghost" id="btnMakineIptal">İptal</button>
+                <button type="submit" class="btn btn-primary">Kaydet</button>
+              </div>
+            </form>
+          </div>
+
+          <div id="makineBos" class="empty-state">
+            <p>Sol listeden bir makine seçin veya yeni kayıt oluşturun.</p>
+            <p class="hint">Kayıtlar <strong>kayitlar/</strong> klasöründeki JSON dosyalarından yüklenir.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-kodlar" class="panel">
+      <div class="kod-panel">
+        <div class="card">
+          <div class="card-header">
+            <h2>Kod Ekle / Düzenle</h2>
+          </div>
+          <form id="kodForm" class="kod-form-inline">
+            <label>
+              Kod
+              <input type="text" id="kodInput" required placeholder="Örn: PE01" maxlength="20">
+            </label>
+            <label class="flex-grow">
+              Açıklama
+              <input type="text" id="aciklamaInput" required placeholder="Örn: Ön Yıkama Pompa Motoru">
+            </label>
+            <div class="form-actions-inline">
+              <button type="button" class="btn btn-ghost" id="btnKodIptal" hidden>İptal</button>
+              <button type="submit" class="btn btn-primary" id="btnKodKaydet">Ekle</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Tüm Kodlar</h2>
+            <div class="card-actions">
+              <button type="button" class="btn btn-ghost btn-sm" id="btnCsvImport">CSV Yükle</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="btnCsvExport">CSV Dışa Aktar</button>
+              <input type="file" id="csvInput" accept=".csv,text/csv,text/plain" hidden>
+            </div>
+          </div>
+          <div class="filter-bar filter-bar-table">
+            <div class="filter-row">
+              <label for="kodListeSeriFilter">Kod / Seri</label>
+              <input type="search" id="kodListeSeriFilter" class="search-input" placeholder="Örn: PE, FE, SWB...">
+            </div>
+            <div class="filter-row">
+              <label for="kodListeAciklamaFilter">Açıklama</label>
+              <input type="search" id="kodListeAciklamaFilter" class="search-input" placeholder="Örn: pompa, motor, vanası...">
+            </div>
+          </div>
+          <div id="seriChipsListe" class="seri-chips"></div>
+          <p id="kodListeFiltreSonuc" class="filter-result"></p>
+          <button type="button" class="btn btn-ghost btn-sm filter-clear-btn" id="btnListeFiltreTemizle">Filtreyi Temizle</button>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Kod</th>
+                  <th>Açıklama</th>
+                  <th class="col-actions">İşlem</th>
+                </tr>
+              </thead>
+              <tbody id="kodTableBody"></tbody>
+            </table>
+          </div>
+          <p id="kodToplam" class="table-footer"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

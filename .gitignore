@@ -1,5 +1,6 @@
-codes/node_modules/
+P&ID/codes/node_modules/
 .cursor/
 *.log
 .DS_Store
 Thumbs.db
+ML/*.tmp

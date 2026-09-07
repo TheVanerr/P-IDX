@@ -16,7 +16,7 @@ function getNpmOriginalArgs() {
 
 function resolveMode() {
   const cliArg = (process.argv[2] || '').toLowerCase();
-  if (['ml', 'pid', 'both'].includes(cliArg)) {
+  if (['ml', 'pid', 'cad', 'both'].includes(cliArg)) {
     return cliArg;
   }
 
@@ -24,7 +24,7 @@ function resolveMode() {
   const startIdx = npmArgs.lastIndexOf('start');
   if (startIdx >= 0) {
     const next = npmArgs[startIdx + 1];
-    if (['ml', 'pid', 'both'].includes(next)) {
+    if (['ml', 'pid', 'cad', 'both'].includes(next)) {
       return next;
     }
   }
@@ -57,6 +57,10 @@ function launch(mode) {
     return runNpm(['run', 'open:ml']);
   }
 
+  if (mode === 'cad') {
+    return runNpm(['run', 'open:cad']);
+  }
+
   if (mode === 'pid') {
     if (!ensurePidDeps()) {
       return { status: 1 };
@@ -72,7 +76,7 @@ function launch(mode) {
     return runNpm(['run', 'start:pid']);
   }
 
-  console.error('Gecersiz mod. Kullanim: npm start ml | npm start pid | npm start both');
+  console.error('Gecersiz mod. Kullanim: npm start ml | npm start pid | npm start cad | npm start both');
   return { status: 1 };
 }
 

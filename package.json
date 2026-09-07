@@ -2,11 +2,12 @@
   "name": "pidx",
   "version": "1.0.0",
   "private": true,
-  "description": "P&IDX monorepo — npm start ml | npm start pid | npm start both",
+  "description": "P&IDX monorepo — npm start ml | npm start pid | npm start cad | npm start both",
   "scripts": {
     "start": "node scripts/run.js",
     "ml": "node scripts/run.js ml",
     "pid": "node scripts/run.js pid",
+    "cad": "node scripts/run.js cad",
     "both": "node scripts/run.js both"
   }
 }

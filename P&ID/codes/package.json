@@ -8,6 +8,7 @@
     "start:pid": "node ./node_modules/electron/cli.js .",
     "start:both": "npm run open:ml && npm run start:pid",
     "open:ml": "node ./scripts/open-ml.js",
+    "open:cad": "node ./scripts/open-cad.js",
     "dev": "npm run start:pid"
   },
   "license": "ISC",

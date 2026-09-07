@@ -4,8 +4,11 @@
   "description": "P&ID doküman editörü",
   "main": "main.js",
   "scripts": {
-    "start": "node ./node_modules/electron/cli.js .",
-    "dev": "node ./node_modules/electron/cli.js ."
+    "start": "npm run start:pid",
+    "start:pid": "node ./node_modules/electron/cli.js .",
+    "start:both": "npm run open:ml && npm run start:pid",
+    "open:ml": "node ./scripts/open-ml.js",
+    "dev": "npm run start:pid"
   },
   "license": "ISC",
   "dependencies": {

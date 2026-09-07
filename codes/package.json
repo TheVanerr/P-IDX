@@ -1,0 +1,11 @@
+{
+  "name": "pidx-entry",
+  "private": true,
+  "description": "cd codes — npm start ml | npm start pid | npm start both",
+  "scripts": {
+    "start": "node run.js",
+    "ml": "node run.js ml",
+    "pid": "node run.js pid",
+    "both": "node run.js both"
+  }
+}
